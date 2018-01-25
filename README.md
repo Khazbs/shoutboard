@@ -1,2 +1,2 @@
-# shoutboard
+# Shoutboard
 My HSE Lyceum project
