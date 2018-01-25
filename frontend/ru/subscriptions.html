@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Управление подписками · Lyceum Shoutboard</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!--<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" /> -->
+        <link rel="stylesheet" href="/static/w3.css" />
+        <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+        <script src="/static/jquery-3.2.1.js"></script>
+        <script src="/static/md5.js"></script>
+        <style>
+            .sub-node .sub-actions {
+                display: none;
+                float: right;
+            }
+            .finger {
+                cursor: pointer;
+            }
+            .sub-node:hover {
+                text-decoration: underline;
+            }
+            .sub-node:hover .sub-actions {
+                display: initial;
+            }
+            .inline-block {
+                display: inline-block;
+            }
+            .hover-underline:hover {
+                text-decoration: underline;
+            }
+            .hover-underline {
+                text-decoration: none;
+            }
+            /* For smaller screens */
+            @media screen and (max-width: 1000px) {
+                .hide-small {
+                    display: none;
+                }
+                .rewidth {
+                    width: 90%;
+                }
+                #ach-img {
+                    max-width: 95%;
+                }
+                .manybuttons {
+                    text-align: center;
+                }
+            }
+            /* For larger screens */
+            @media screen and (min-width: 1000.01px) {
+                .hide-large {
+                    display: none;
+                }
+                #subs-container {
+                    width: 75%;
+                }
+                #ach-img {
+                    max-width: 60%;
+                }
+            }
+            #sticky-navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+            }
+            .feed-post-text {
+                white-space: pre-wrap;
+            }
+
+        </style>
+    </head>
+    <body class="w3-indigo">
+        <script>
+            var whoami = getCookie("whoami");
+            var subSecret = false;
+            var important = false;
+            var subscribeSpoiler = false;
+            function getCookie(name) {
+                var matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
+                return matches ? decodeURIComponent(matches[1]) : undefined;
+            }
+            var whoami = getCookie("whoami");
+            var private = false;
+            $(document).ready(function() {
+                if (whoami === void(0)) {
+                    $(".u-button").hide();
+                }
+                else {
+                    $(".g-button").hide();
+                }
+                $("span.whoami").html("@" + whoami);
+                toggleSubscribeSpoiler(true);
+                refreshSubscriptions();
+            });
+            function triggerAch(achievement) {
+                var achAudio = new Audio('/static/ach/notify.mp3');
+                $("#ach-img").prop("src", "/static/ach/" + achievement + ".png");
+                $("#ach-container").fadeIn();
+                achAudio.play();
+            }
+            function setSubSecret(value) {
+                subSecret = value;
+                $("#subscribe-secretbutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Тайно" : "Открыто");
+            }
+            function setImportant(value) {
+                important = value;
+                $("#subscribe-importantbutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Важные" : "Обычные");
+            }
+            function toggleSubscribeSpoiler(value) {
+                if (subscribeSpoiler == value)
+                    return;
+                subscribeSpoiler = value;
+                if (value) {
+                    $("#subscribe-title").html("Изм. подписки");
+                }
+                else {
+                    $("#subscribe-title").html("Изм. подписки +");
+                    $("#subscribe-topic").val("");
+                    setSubSecret(false);
+                    setImportant(false);
+                }
+                $("#subscribe").slideToggle(value);
+            }
+            function edit(sub, imp, sec) {
+                $("#subscribe-topic").val(sub);
+                setSubSecret(sec);
+                setImportant(imp);
+                toggleSubscribeSpoiler(true);
+                $('html, body').animate({ scrollTop: 0 }, 'fast');
+            }
+            function refreshSubscriptions() {
+                $("#refresh-link").prop("disabled", true);
+                $("#refresh-text").html("Обновление...");
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/fetchSubscriptions",
+                    data: {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json)
+                        if (response["status"] == "Ok") {
+                            $("#subs").hide().empty();
+                            for (i = 0; i < response["subs"].length; ++i) {
+                                $("#subs").append(' \
+                                    <div onclick="edit(\'' + response["subs"][i]["topic"] + '\', ' + (response["subs"][i]["important"] ? "true" : "false") + ', ' + (response["subs"][i]["secret"] ? "true" : "false") + ')" id="sub-' + response["subs"][i]["topic"] + '" class="wall-post finger w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"><h4>' + response["subs"][i]["topic"] + '<span class="hide-large"><br />&nbsp;</span><span class="w3-right">' +
+                                    (response["subs"][i]["secret"] == 1 ? "Тайно" : "Открыто") + " · " + (response["subs"][i]["important"] == 1 ? "Важные" : "Обычные") + '</span></h4></div><br /> \
+                                ');
+                            }
+                            $("#subs").slideDown(); 
+                        }
+                        else if (response["status"] == "NotFound") {
+                            $("#subs").hide().html("У вас еще нет подписок").slideDown();
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#refresh-link").prop("disabled", false);
+                        $("#refresh-text").html("Обновить");
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#refresh-link").prop("disabled", false);
+                        $("#refresh-text").html("Обновить");
+                    },
+                    timeout: 3000
+                });
+            }
+            function submitSubscription() {
+                $("#subscribe-submit").prop("disabled", true);
+                $("#subscribe-unsubsubmit").prop("disabled", true);
+                //$("#subscribe-close").prop("disabled", true);
+                $("#subscribe-secretbutton").prop("disabled", true);
+                $("#subscribe-importantbutton").prop("disabled", true);
+                $("#subscribe-topic").prop("disabled", true);
+                $.ajax({
+                    method: "POST",
+                    url: "/data/subscribe",
+                    data: {
+                        topic: $("#subscribe-topic").val(),
+                        secret: subSecret ? "true" : "false",
+                        important: important ? "true" : "false",
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json)
+                        if (response["status"] == "Ok") {
+                            // toggleSubscribeSpoiler(false);
+                            $("#subscribe-topic").val("");
+                            setSubSecret(false);
+                            setImportant(false);
+                            refreshSubscriptions();
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#subscribe-submit").prop("disabled", false);
+                        $("#subscribe-unsubsubmit").prop("disabled", false);
+                        //$("#subscribe-close").prop("disabled", false);
+                        $("#subscribe-secretbutton").prop("disabled", false);
+                        $("#subscribe-importantbutton").prop("disabled", false);
+                        $("#subscribe-topic").prop("disabled", false);
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#subscribe-submit").prop("disabled", false);
+                        $("#subscribe-unsubsubmit").prop("disabled", false);
+                        $("#subscribe-importantbutton").prop("disabled", false);
+                        //$("#subscribe-close").prop("disabled", false);
+                        $("#subscribe-secretbutton").prop("disabled", false);
+                        $("#subscribe-topic").prop("disabled", false);
+                    },
+                    timeout: 3000
+                });
+            }
+            function submitUnsub() {
+                $("#subscribe-submit").prop("disabled", true);
+                $("#subscribe-unsubsubmit").prop("disabled", true);
+                //$("#subscribe-close").prop("disabled", true);
+                $("#subscribe-secretbutton").prop("disabled", true);
+                $("#subscribe-importantbutton").prop("disabled", true);
+                $("#subscribe-topic").prop("disabled", true);
+                $.ajax({
+                    method: "POST",
+                    url: "/data/unsubscribe",
+                    data: {
+                        topic: $("#subscribe-topic").val(),
+                        secret: subSecret ? "true" : "false",
+                        important: important ? "true" : "false",
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json)
+                        if (response["status"] == "Ok" || response["status"] == "NoChanges") {
+                            // toggleSubscribeSpoiler(false);
+                            $("#subscribe-topic").val("");
+                            setSubSecret(false);
+                            setImportant(false);
+                            refreshSubscriptions();
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#subscribe-submit").prop("disabled", false);
+                        $("#subscribe-unsubsubmit").prop("disabled", false);
+                        //$("#subscribe-close").prop("disabled", false);
+                        $("#subscribe-secretbutton").prop("disabled", false);
+                        $("#subscribe-importantbutton").prop("disabled", false);
+                        $("#subscribe-topic").prop("disabled", false);
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#subscribe-submit").prop("disabled", false);
+                        $("#subscribe-unsubsubmit").prop("disabled", false);
+                        $("#subscribe-importantbutton").prop("disabled", false);
+                        //$("#subscribe-close").prop("disabled", false);
+                        $("#subscribe-secretbutton").prop("disabled", false);
+                        $("#subscribe-topic").prop("disabled", false);
+                    },
+                    timeout: 3000
+                });
+            }
+        </script>
+        <div id="ach-container" onclick="$('#ach-container').fadeOut();" style="width: 100%; display: none; text-align: center; position: fixed; bottom: 30px;">
+            <div>
+                <img id="ach-img" src="" style="max-width: 60%;" />
+            </div>
+        </div>
+        <header class="w3-container w3-margin-top w3-center">
+            <p>HSE Lyceum</p>
+            <a href="/" class="hover-underline"><h1>Shoutboard</h1></a>
+        </header>
+        <nav id="navbar" class="w3-container w3-padding w3-indigo w3-center">
+            <a href="/me"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+            <a href="/feed"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+            <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            <a href="/subscriptions"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+            <a href="/settings"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+            <a href="/logout"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+            <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+        </nav>
+        <nav id="sticky-navbar" class="w3-container w3-padding w3-indigo w3-center" style="display: none;">
+            <span class="hide-small">
+                <a href="/me"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+                <a href="/feed"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+                <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            </span>
+            <button onclick="$('#mobile-nav').slideToggle();" class="w3-button w3-hover-none w3-hover-text-white hide-large">≡</button>
+            <a href="/"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline" id="logo" style="display: none; font-size: 1.2em;">HSE Lyceum <strong>Shoutboard</strong></button></a>
+            <span class="hide-small">
+                <a href="/subscriptions"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+                <a href="/settings"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+                <a href="/logout"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+                <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </span>
+            <div class="hide-large" id="mobile-nav" style="display: none;">
+                <a href="/me"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a><br />
+                <a href="/feed"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a><br />
+                <a href="/settings"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a><br />
+                <a href="/subscriptions"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline=">Подписки</button></a><br />
+                <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a><br />
+                <a href="/logout"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a><br />
+                <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </div>
+        </nav>
+        <div class="w3-center w3-margin-top">
+            <div id="subs-container" class="rewidth inline-block w3-margin-top">
+                <h3 class="w3-margin-bottom">Ваши подписки</h3>
+                <div class="w3-padding w3-text-indigo w3-round w3-white" style="text-align: left;">
+                    <a id="refresh-link" class="hover-underline inline-block" href=javascript:refreshSubscriptions()><h4 id="refresh-text">Обновить</h4></a>
+                    <a class="hover-underline inline-block w3-right" href=javascript:toggleSubscribeSpoiler(!subscribeSpoiler)><h4 id="subscribe-title">Изм. подписки +</h4></a>
+                    <div id="subscribe" style="display: none;">
+                        <input style="width: 100%;" class="w3-input" type="text" id="subscribe-topic" placeholder="Тема подписки (e.g. #Хэштег или @Пользователь или $Группа)" />
+                        <p class="manybuttons">
+                            <button id="subscribe-submit" onclick="submitSubscription()" class="w3-button w3-indigo">Изм. подписку</button>
+                            <button id="subscribe-unsubsubmit" onclick="submitUnsub()" class="w3-button w3-indigo">Отписаться</button>
+                            <button id="subscribe-secretbutton" onclick="setSubSecret(!subSecret)" class="w3-button w3-white w3-text-indigo">Открыто</button>
+                            <button id="subscribe-importantbutton" onclick="setImportant(!important)" class="w3-button w3-white w3-text-indigo">Обычные</button>
+                            <!--<button id="subscribe-close" onclick="toggleSubscribeSpoiler(false)" class="w3-button w3-margin-right w3-white w3-text-indigo">Закрыть</button>-->
+                        </p>
+                    </div>
+                </div><br />
+                <div id="subs">
+                    Загрузка...
+                </div>
+            </div>
+        </div>
+        <script>
+            $(document).ready(function() {
+                var $window = $(window);
+                var $navbar = $("#navbar");
+                var $stickyNavbar = $("#sticky-navbar");
+                var elementTop = $navbar.offset().top;
+                var $logo = $("#logo");
+                var $mobileNav = $("#mobile-nav");
+                $window.scroll(function() {
+                    if ($window.scrollTop() > elementTop) {
+                        $stickyNavbar.show();
+                        $navbar.css("visibility", "hidden");
+                        $logo.slideDown();
+                    }
+                    else {
+                        $navbar.css("visibility", "visible");
+                        $stickyNavbar.hide();
+                        $mobileNav.hide();
+                        $logo.hide();
+                    }
+                    
+                });
+            });
+        </script>
+        <footer class="w3-container w3-margin w3-center">
+            <p>by <a target="_blank" href="https://vk.com/arthur_khazbs">Arthur Khazbs</a></p>
+        </footer>
+    </body>
+</html>
