@@ -1,2 +1,2 @@
 # SQLite databases
-.sqlite
+*.sqlite
