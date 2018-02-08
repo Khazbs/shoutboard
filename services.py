@@ -1729,6 +1729,25 @@ class Page_Settings_Handler(tornado.web.RequestHandler):
         else:
             self.render("./frontend/" + locale + "/settings.html")
 
+class Page_Search_Handler(tornado.web.RequestHandler):
+    @cookie_setup
+    def get(self, locale, userdata, whatever):
+        err_desc = {
+                "ru": {
+                    "ERR_NAME": "В разработке",
+                    "ERR_DESCRIPTION": "Страница поиска на данный момент находится в разработке"
+                },
+                "en": {
+                    "ERR_NAME": "Under construction",
+                    "ERR_DESCRIPTION": "The search page is still under development"
+                },
+                "1337": {
+                    "ERR_NAME": "Und3r c0n57ruc710n",
+                    "ERR_DESCRIPTION": "7h3 534rch p493 15 57111 und3r d3v310pm3n7"
+                }
+            }
+        self.render("./frontend/error.html", **err_desc[locale])
+
 class Page_Post_Handler(tornado.web.RequestHandler):
     @cookie_setup
     def get(self, locale, userdata, slug):
@@ -1847,6 +1866,7 @@ app = tornado.web.Application([
     (r"/subscriptions", Page_Subscriptions_Handler),
     (r"/me", Page_Me_Handler),
     (r"/feed", Page_Feed_Handler),
+    (r"/search", Page_Search_Handler),
     (r"/u/(.*)", Page_User_Handler),
     (r"/p/(.*)", Page_Post_Handler),
     (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": "./frontend/static"}),
