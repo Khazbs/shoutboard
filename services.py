@@ -686,9 +686,11 @@ class Data_FetchWall_Handler(tornado.web.RequestHandler):
             }
             self.finish(json.dumps(response[locale]))
             return
+        auth_user = userdata[0] if userdata[0] else ""
+        auth_user = normalize_str(auth_user, username_alphabet)
         try:
             rows = sql.execute("SELECT postId, postsTest.uname, username, fullName, text, recipients, timeCreated, secret FROM postsTest JOIN usersTest ON postsTest.uname = usersTest.uname WHERE (NOT deleted AND postsTest.uname = '{unm}') AND (NOT secret OR recips LIKE '% @' || '{auth}' || ' %') ORDER BY timeCreated DESC".format(
-                                unm=normalize_str(target_username, username_alphabet), auth=normalize_str(userdata[0], username_alphabet))).fetchall()
+                                unm=normalize_str(target_username, username_alphabet), auth=auth_user)).fetchall()
         except sqlite3.DatabaseError as e:
             db_conn.rollback()
             print(e)
