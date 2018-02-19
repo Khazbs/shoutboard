@@ -354,8 +354,7 @@ class Security_ChangePasswd_Handler(tornado.web.RequestHandler):
             new_passwd = validate_str(self.get_argument("newPasswd", ""), None, (6, 50))
             conf_passwd = self.get_argument("confPasswd", "")
             target_data = sql.execute("SELECT username, passHash, salt FROM usersTest WHERE uname = ? LIMIT 1", (normalize_str(userdata[0], username_alphabet),)).fetchone()
-            # print("sha256(", old_passwd, "+",  target_data[2], ") ==", sha256((old_passwd + target_data[2]).encode("utf-8")).hexdigest(), "==", target_data[1])
-            if sha256((old_passwd + target_data[2]).encode("utf-8")).hexdigest() != userdata[1]:
+            if sha256((old_passwd + target_data[2]).encode("utf-8")).hexdigest() != target_data[1]:
                 response = {
                     "ru": {
                         "status": "WrongOldPasswd",
