@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Новости · Lyceum Shoutboard</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!--<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" /> -->
+        <link rel="stylesheet" href="/static/w3.css" />
+        <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+        <script src="/static/jquery-3.2.1.js"></script>
+        <style>
+            .inline-block {
+                display: inline-block;
+            }
+            .hover-underline:hover {
+                text-decoration: underline;
+            }
+            .finger {
+                cursor: pointer;
+            }
+            .hover-underline {
+                text-decoration: none;
+            }
+            /* For smaller screens */
+            @media screen and (max-width: 1000px) {
+                .hide-small {
+                    display: none;
+                }
+                .rewidth {
+                    width: 90%;
+                }
+                .manybuttons {
+                    text-align: center;
+                }
+            }
+            /* For larger screens */
+            @media screen and (min-width: 1000.01px) {
+                .hide-large {
+                    display: none;
+                }
+                #feed {
+                    width: 75%;
+                }
+            }
+            #sticky-navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+            }
+            .feed-post-text, .imp-post-text, .modal-post-text {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        </style>
+    </head>
+    <body class="w3-indigo">
+        <script>
+            var defaultCount = 20;
+            var lastPostId = "";
+            function getCookie(name) {
+                var matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
+                return matches ? decodeURIComponent(matches[1]) : undefined;
+            }
+            var whoami = getCookie("whoami");
+            var private = false;
+            var newpostSpoiler = false;
+            var hashtagLink = "<a target='_blank' href='/search?hashtag=$2'>$1</a>";
+            $(document).ready(function() {
+                if (whoami === void(0)) {
+                    $(".user-elem").hide();
+                }
+                else {
+                    $(".guest-elem").hide();
+                }
+                $("span.whoami").html("@" + whoami);
+                refreshFeed();
+            });
+            function triggerAch(achievement) {
+                    var achAudio = new Audio('/static/ach/notify.mp3');
+                    $("#ach-img").prop("src", "/static/ach/" + achievement + ".png");
+                    $("#ach-container").fadeIn();
+                    achAudio.play();
+                }
+            function setPrivate(value) {
+                private = value;
+                $("#newpost-privatebutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Секретная" : "Публичная");
+                if (value)
+                    $("#newpost-recipients").attr("placeholder", "Получатели (e.g. @Пользователь)")
+                else
+                    $("#newpost-recipients").attr("placeholder", "Получатели (e.g. $Группа @Пользователь)")
+            }
+            function setSubSecret(value) {
+                subSecret = value;
+                $("#subscribe-secretbutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Тайно" : "Открыто");
+            }
+            function setImportant(value) {
+                important = value;
+                $("#subscribe-importantbutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Важные" : "Обычные");
+            }
+            function toggleNewpostSpoiler(value) {
+                if (newpostSpoiler == value)
+                    return;
+                newpostSpoiler = value;
+                if (value) {
+                    $("#newpost-title").html("Создать новость");
+                }
+                else {
+                    $("#newpost-title").html("Создать новость +");
+                    $("#newpost-text").val("");
+                    $("#newpost-recipients").val("");
+                    setPrivate(false);
+                }
+                $("#newpost").slideToggle(value);
+            }
+            function refreshFeed(animate = true) {
+                $("#refresh-link").prop("disabled", true);
+                $("#refresh-text").html("Обновление...");
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/fetchFeed",
+                    data: {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        count: defaultCount
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            var n = response["feed"].length;
+                            $("#important-posts").hide();
+                            $("#feed-posts").empty().append('<div id="cur-posts-block" style="display: none;"></div>');
+                            $("#imp-posts").empty().append('<div id="cur-important-posts-block" style="display: none;"></div>');
+                            for (i = 0; i < n; ++i) {
+                                if (response["feed"][i]["important"] === 1) {
+                                    $("#cur-important-posts-block").append(' \
+                                        <div id="important-post-' + response["feed"][i]["author"] + "-" + response["feed"][i]["postId"] + '" class="imp-post w3-padding w3-white w3-text-teal w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["feed"][i]["author"] + '"><h4 style="display: inline;">' + (response["feed"][i]["authorFullName"] ? response["feed"][i]["authorFullName"] : '@' + response["feed"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["feed"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black imp-post-text">' + (response["feed"][i]["important"] === 1 ? '<span class="w3-text-teal">Важно: </span>' : '') + response["feed"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["feed"][i]["secret"] ? "секретная" : "") + ' <a target="_blank" href="/p/' + response["feed"][i]["author"] + "/" + response["feed"][i]["postId"] + '">' + response["feed"][i]["time"] + '</a>' + (response["feed"][i]["recipients"].trim() ? ' для <u>' + response["feed"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                                if (true) {
+                                    $("#cur-posts-block").append(' \
+                                        <div id="feed-post-' + response["feed"][i]["author"] + "-" + response["feed"][i]["postId"] + '" class="feed-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["feed"][i]["author"] + '"><h4 style="display: inline;">' + (response["feed"][i]["authorFullName"] ? response["feed"][i]["authorFullName"] : '@' + response["feed"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["feed"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black feed-post-text">' + (response["feed"][i]["important"] === 1 ? '<span class="w3-text-indigo">Важно: </span>' : '') + response["feed"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["feed"][i]["secret"] ? "секретная" : "") + ' <a target="_blank" href="/p/' + response["feed"][i]["author"] + "/" + response["feed"][i]["postId"] + '">' + response["feed"][i]["time"] + '</a>' + (response["feed"][i]["recipients"].trim() ? ' для <u>' + response["feed"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                            }
+                            lastPost = response["feed"][n - 1]["postId"] + " " + response["feed"][n - 1]["author"];
+                            if (n < defaultCount) {
+                                $("#load-more").slideUp();
+                            }
+                            else {
+                                $("#load-more").slideDown();
+                            }
+                            if ($(".imp-post").length > 0) {
+                                $("#important-posts").show();
+                                if (animate) {
+                                    $("#cur-important-posts-block").slideDown()
+                                }
+                                else {
+                                    $("#cur-important-posts-block").show();
+                                }
+                            }
+                            $("#cur-important-posts-block").removeAttr("id");
+                            animate ? $("#cur-posts-block").slideDown() : $("#cur-posts-block").show();
+                            $("#cur-posts-block").removeAttr("id");
+                        }
+                        else if (response["status"] == "NotFound") {
+                            $("#load-more").slideUp();
+                            $("#feed-posts").hide().html("В вашей ленте пока нет новостей").slideDown();
+                            lastPost = "";
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#refresh-link").prop("disabled", false);
+                        $("#refresh-text").html("Обновить");
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#refresh-link").prop("disabled", false);
+                        $("#refresh-text").html("Обновить");
+                    },
+                    timeout: 3000
+                });
+            }
+            function loadMore(animate = true) {
+                $("#load-more-link").prop("disabled", true);
+                $("#load-more-text").html("Загрузка...");
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/fetchFeed",
+                    data: {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        offsetPost: lastPost,
+                        count: defaultCount
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            $("#feed-posts").append('<div id="cur-posts-block" style="display: none;"></div>');
+                            $("#imp-posts").append('<div id="cur-important-posts-block" style="display: none;"></div>');
+                            var n = response["feed"].length;
+                            for (i = 0; i < n; ++i) {
+                                if (response["feed"][i]["important"] === 1) {
+                                    $("#cur-important-posts-block").append(' \
+                                        <div id="important-post-' + response["feed"][i]["author"] + "-" + response["feed"][i]["postId"] + '" class="imp-post w3-padding w3-white w3-text-teal w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["feed"][i]["author"] + '"><h4 style="display: inline;">' + (response["feed"][i]["authorFullName"] ? response["feed"][i]["authorFullName"] : '@' + response["feed"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["feed"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black imp-post-text">' + (response["feed"][i]["important"] === 1 ? '<span class="w3-text-teal">Важно: </span>' : '') + response["feed"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["feed"][i]["secret"] ? "секретная " : "") + ' <a target="_blank" href="/p/' + response["feed"][i]["author"] + "/" + response["feed"][i]["postId"] + '">' + response["feed"][i]["time"] + '</a>' + (response["feed"][i]["recipients"].trim() ? ' для <u>' + response["feed"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                                if (true) {
+                                    $("#cur-posts-block").append(' \
+                                        <div id="feed-post-' + response["feed"][i]["author"] + "-" + response["feed"][i]["postId"] + '" class="feed-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["feed"][i]["author"] + '"><h4 style="display: inline;">' + (response["feed"][i]["authorFullName"] ? response["feed"][i]["authorFullName"] : '@' + response["feed"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["feed"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black feed-post-text">' + (response["feed"][i]["important"] === 1 ? '<span class="w3-text-indigo">Важно: </span>' : '') + response["feed"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["feed"][i]["secret"] ? "секретная " : "") + ' <a target="_blank" href="/p/' + response["feed"][i]["author"] + "/" + response["feed"][i]["postId"] + '">' + response["feed"][i]["time"] + '</a>' + (response["feed"][i]["recipients"].trim() ? ' для <u>' + response["feed"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                            }
+                            lastPost = response["feed"][n - 1]["postId"] + " " + response["feed"][n - 1]["author"];
+                            if (n < defaultCount) {
+                                $("#load-more").slideUp();
+                            }
+                            else {
+                                $("#load-more").slideDown();
+                            }
+                            if ($(".imp-post").length > 0) {
+                                $("#important-posts").show();
+                                if (animate) {
+                                    $("#cur-important-posts-block").slideDown()
+                                }
+                                else {
+                                    $("#cur-important-posts-block").show();
+                                }
+                            }
+                            $("#cur-important-posts-block").removeAttr("id");
+                            animate ? $("#cur-posts-block").slideDown() : $("#cur-posts-block").show();
+                            $("html, body").animate({ scrollTop: $("#cur-posts-block").offset().top - $("#sticky-navbar").height() }, 1000);
+                            $("#cur-posts-block").removeAttr("id");
+                        }
+                        else if (response["status"] == "NotFound") {
+                            $("#load-more").slideUp();
+                            lastPost = "";
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#load-more-link").prop("disabled", false);
+                        $("#load-more-text").html("Загрузить еще");
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#load-more-link").prop("disabled", false);
+                        $("#load-more-text").html("Загрузить еще");
+                    },
+                    timeout: 3000
+                });
+            }
+            function submitPost() {
+                $("#newpost-submit").prop("disabled", true);
+                $("#newpost-close").prop("disabled", true);
+                $("#newpost-privatebutton").prop("disabled", true);
+                $("#newpost-recipients").prop("disabled", true);
+                $.ajax({
+                    method: "POST",
+                    url: "/data/createPost",
+                    data: {
+                        recipients: $("#newpost-recipients").val(),
+                        text: $("#newpost-text").prop("disabled", true).val(),
+                        secret: private ? "true" : "false",
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            if ($("#newpost-text").val().toLowerCase().indexOf("<script") !== -1) {
+                                triggerAch("xss");
+                            }
+                            setPrivate(false);
+                            $("#newpost-text").val("");
+                            $("#newpost-recipients").val("");
+                            refreshFeed(false);
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#newpost-text").prop("disabled", false);
+                        $("#newpost-recipients").prop("disabled", false);
+                        $("#newpost-privatebutton").prop("disabled", false);
+                        $("#newpost-submit").prop("disabled", false);
+                        $("#newpost-close").prop("disabled", false);
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#newpost-text").prop("disabled", false);
+                        $("#newpost-recipients").prop("disabled", false);
+                        $("#newpost-privatebutton").prop("disabled", false);
+                        $("#newpost-close").prop("disabled", false);
+                        $("#newpost-submit").prop("disabled", false);
+                    },
+                    timeout: 3000
+                });
+            }
+            function showModal(message) {
+                $("#message").html(message);
+                $("#modal").show();
+            }
+            function hideModal() {
+                $("#modal").hide();
+                $("#message").html("");
+            }
+            function viewPost(which) {
+                showModal("Загрузка новости...");
+                $.ajax({
+                    method: "POST",
+                    url: "/data/fetchPost",
+                    data: {
+                        which: which,
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            $("#message").html(' \
+                                <div id="modal-post-' + response["post"]["author"] + "-" + response["post"]["postId"] + '" class="modal-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                    <a href="/u/' + response["post"]["author"] + '"><h4 style="display: inline;">' + (response["post"]["authorFullName"] ? response["post"]["authorFullName"] : '@' + response["post"]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["post"]["author"] + '</p> \
+                                    <p class="w3-text-black modal-post-text">' + response["post"]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                    <p class="w3-text-gray">'  + (response["post"]["secret"] ? "секретная " : "") +  ' <a target="_blank" href="/p/' + response["post"]["author"] + "/" + response["post"]["postId"] + '">' + response["post"]["time"] + '</a>' + (response["post"]["recipients"].trim() ? ' для <u>' + response["post"]["recipients"] + "</u>" : "") + '</p> \
+                                </div><br /> \
+                            ');
+                        }
+                        else {
+                            $("#message").html("<h3>" + response["status"] + " error</h3><p>" + response["description"] + "</p>");
+                        }
+                    },
+                    error: function() {
+                        $("#message").html('The server is unavailable! Please try again in a while...');
+                    }
+                });
+            }
+        </script>
+        <div id="ach-container" onclick="$('#ach-container').fadeOut();" style="width: 100%; display: none; text-align: center; position: fixed; bottom: 30px;">
+            <div>
+                <img id="ach-img" src="" style="max-width: 60%;" />
+            </div>
+        </div>
+        <div id="modal" class="w3-modal">
+            <div class="w3-text-indigo finger" style="z-index: 12; font-size: 2.5em; position: fixed; top: 0.7em; right: 1em;" onclick="hideModal()">&times;</div>
+            <div class="w3-modal-content w3-container w3-padding w3-animate-zoom w3-white w3-center">
+                <p class="w3-text-indigo" id="message"></p>
+            </div>
+        </div>
+        <header class="w3-container w3-margin-top w3-center">
+            <p>HSE Lyceum</p>
+            <a href="/" class="hover-underline"><h1>Shoutboard</h1></a>
+        </header>
+        <nav id="navbar" class="w3-container w3-padding w3-indigo w3-center">
+            <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+            <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+            <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+            <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+            <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+            <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+        </nav>
+        <nav id="sticky-navbar" class="w3-container w3-padding w3-indigo w3-center" style="display: none;">
+            <span class="hide-small">
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+                <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            </span>
+            <button onclick="$('#mobile-nav').slideToggle();" class="w3-button w3-hover-none w3-hover-text-white hide-large">≡</button>
+            <a href=""><button class="w3-button w3-hover-none w3-hover-text-white hover-underline" id="logo" style="display: none; font-size: 1.2em;">HSE Lyceum <strong>Shoutboard</strong></button></a>
+            <span class="hide-small">
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </span>
+            <div class="hide-large" id="mobile-nav" style="display: none;">
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a><br class="user-elem" />
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a><br class="user-elem" />
+                <a href="/search"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a><br class="user-elem" />
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline=">Подписки</button></a><br class="user-elem" />
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a><br class="user-elem" />
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a><br class="user-elem" />
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a><br class="guest-elem" />
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </div>
+        </nav>
+        <div class="w3-center w3-margin-top">
+            <div id="feed" class="rewidth inline-block w3-margin-top">
+                <div class="w3-padding w3-text-indigo w3-round w3-white" style="text-align: left;">
+                    <a class="hover-underline inline-block w3-right user-elem" href=javascript:toggleNewpostSpoiler(!newpostSpoiler)><h4 id="newpost-title">Создать новость +</h4></a>
+                    <a id="refresh-link" class="hover-underline inline-block" href=javascript:refreshFeed()><h4 id="refresh-text">Обновить</h4></a>
+                    <div id="newpost" style="display: none;">
+                        <div class="w3-margin-top w3-margin-bottom">
+                            <textarea id="newpost-text" rows="4" style="width: 100%; resize: vertical;"></textarea>
+                        </div>
+                        <input class="w3-input" type="text" id="newpost-recipients" placeholder="Получатели (e.g. $Группа @Пользователь)" />
+                        <p class="manybuttons">
+                            <button id="newpost-submit" onclick="submitPost()" class="w3-button w3-indigo">Отправить</button>
+                            <button id="newpost-privatebutton" onclick="setPrivate(!private)" class="w3-button w3-white w3-text-indigo">Публичная</button>
+                            <button id="newpost-close" onclick="toggleNewpostSpoiler(false)" class="w3-button w3-margin-right w3-white w3-text-indigo">Отмена</button>
+                        </p>
+                    </div>
+                </div><br />
+                <div id="important-posts" class="w3-margin-bottom w3-round w3-teal" style="display: none;">
+                    <h3 class="w3-padding">Важные новости</h3>
+                    <div id="imp-posts">
+                    </div>
+                </div>
+                <div id="feed-posts">
+                    Загрузка новостей...
+                </div>
+                <div id="load-more" style="display: none;">
+                    <a class="hover-underline inline-block" href=javascript:loadMore()><h4>Загрузить еще</h4></a>
+                </div>
+            </div>
+        </div>
+        <script>
+            $(document).ready(function() {
+                var $window = $(window);
+                var $navbar = $("#navbar");
+                var $stickyNavbar = $("#sticky-navbar");
+                var elementTop = $navbar.offset().top;
+                var $logo = $("#logo");
+                var $mobileNav = $("#mobile-nav");
+                $window.scroll(function() {
+                    if ($window.scrollTop() > elementTop) {
+                        $stickyNavbar.show();
+                        $navbar.css("visibility", "hidden");
+                        $logo.slideDown();
+                    }
+                    else {
+                        $navbar.css("visibility", "visible");
+                        $stickyNavbar.hide();
+                        $mobileNav.hide();
+                        $logo.hide();
+                    }
+                    
+                });
+            });
+        </script>
+        <footer class="w3-container w3-margin w3-center">
+            <p>by <a target="_blank" href="https://vk.com/arthur_khazbs">Arthur Khazbs</a></p>
+        </footer>
+    </body>
+</html>
