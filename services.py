@@ -31,6 +31,8 @@ def mid_print(x):
     return x
 
 def normalize_str(string, alphabet = None, lower = True):
+    if string is None:
+        return None
     if lower:
         string = string.lower()
     if alphabet is None:
@@ -742,21 +744,19 @@ class Data_FetchWall_Handler(tornado.web.RequestHandler):
                 posts.append(post)
             response = {
                 "ru": {
-                    "wall": posts,
                     "status": "Ok",
                     "description": "Запрос успешно выполенен",
                 },
                 "en": {
-                    "wall": posts,
                     "status": "Ok",
                     "description": "Request successfully fulfilled",
                 },
                 "1337": {
-                    "wall": posts,
                     "status": "Ok",
                     "description": "R3qu357 5ucc355fu11y fu1f1113d",
                 },
             }
+            response[locale].update({"wall": posts})
             self.finish(json.dumps(response[locale]))
 
 class Data_FetchFeed_Handler(tornado.web.RequestHandler):
@@ -786,6 +786,7 @@ class Data_FetchFeed_Handler(tornado.web.RequestHandler):
         count = int(self.get_argument("count", 20))
         try:
             if offsetPostId and offsetPostAuthor:
+                # DANGEROUS: postID may not be unique on its own!
                 rows = sql.execute("""
                     SELECT * FROM
                     (
@@ -806,6 +807,7 @@ class Data_FetchFeed_Handler(tornado.web.RequestHandler):
                     ) ORDER BY timeCreated DESC
                     """.format(auth=normalize_str(userdata[0], username_alphabet), offsetPostId=offsetPostId, offsetPostAuthor=normalize_str(offsetPostAuthor, username_alphabet), count=count)).fetchall()
             else:
+                # DANGEROUS: postID may not be unique on its own!
                 rows = sql.execute("""
                     SELECT * FROM
                     (
@@ -869,7 +871,6 @@ class Data_FetchFeed_Handler(tornado.web.RequestHandler):
                     "author": username,
                     "postId": postId,
                     "authorFullName": fullName,
-                    # "text": text,
                     "text": trim(text, "<span class='w3-text-indigo'>...</span><p><a href=javascript:viewPost('" + username + "/" + postId + "')>Читать полностью</a></p>"),
                     "recipients": recipients,
                     "time": timeCreated,
@@ -896,21 +897,181 @@ class Data_FetchFeed_Handler(tornado.web.RequestHandler):
                 return
             response = {
                 "ru": {
-                    "feed": posts,
                     "status": "Ok",
                     "description": "Запрос успешно выполенен",
                 },
                 "en": {
-                    "feed": posts,
                     "status": "Ok",
                     "description": "Request successfully fulfilled",
                 },
                 "1337": {
-                    "feed": posts,
                     "status": "Ok",
                     "description": "R3qu357 5ucc355fu11y fu1f1113d",
                 },
             }
+            response[locale].update({"feed": posts})
+            self.finish(json.dumps(response[locale]))
+            return
+
+class Data_SearchPosts_Handler(tornado.web.RequestHandler):
+    @arg_setup
+    def post(self, locale, userdata):
+        if userdata[0] is None:
+            auth = "!!!NOBODY!!!"
+        else:
+            auth = normalize_str(userdata[0], username_alphabet, True)
+        # offsetPost = self.get_argument("offsetPost", "").split()
+        # offsetPostId, offsetPostAuthor = (offsetPost if len(offsetPost) == 2 else (None, None))
+        # offsetPostId = validate_str(offsetPostId, '0123456789ABCDEFHIJKLMNOPQRSTUVWXYZ', (6, 6))
+        # offsetPostAuthor = validate_str(offsetPostAuthor, username_alphabet, (6, 20))
+        # count = int(self.get_argument("count", 20))
+        hashtag = validate_str(self.get_argument("hashtag", None), username_alphabet)
+        text = self.get_argument("text", "").replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
+        print(auth, hashtag, text)
+        if hashtag:
+            text = "&&"
+        else:
+            hashtag = "!!!NOTHING!!!"
+            if text:
+                text = tornado.escape.xhtml_escape(text)
+            else:
+                response = {
+                    "ru": {
+                        "status": "NotFound",
+                        "description": "Соответствующие объявления не найдены",
+                    },
+                    "en": {
+                        "status": "NotFound",
+                        "description": "No corresponding shouts found",
+                    },
+                    "1337": {
+                        "status": "NotFound",
+                        "description": "N0 c0rr35p0nd1n9 5h0u75 f0und",
+                    },
+                }
+                self.finish(json.dumps(response[locale]))
+                return
+        try:
+            #if offsetPostId and offsetPostAuthor:
+            if False:
+                # DANGEROUS: postID may not be unique on its own!
+                rows = sql.execute("""
+                    SELECT * FROM
+                    (
+                        SELECT postId, feed.uname, username, fullName, text, recipients, timeCreated, secret FROM
+                        (
+                            SELECT postsTest.* FROM postsTest WHERE
+                                tags LIKE '% #{hashtag} %' ESCAPE '\\' OR
+                                text LIKE '%{text}%' ESCAPE '\\'
+                        )
+                        AS feed JOIN usersTest ON feed.uname = usersTest.uname
+                        WHERE NOT deleted AND (NOT secret OR recips LIKE '% @' || '{auth}' || ' %') AND timeCreated < (SELECT timeCreated FROM postsTest WHERE postId = '{offsetPostId}' AND uname = '{offsetPostAuthor}')
+                        GROUP BY postId
+                        -- LIMIT count
+                    ) ORDER BY timeCreated DESC
+                    """.format(auth=auth, offsetPostId=offsetPostId, offsetPostAuthor=normalize_str(offsetPostAuthor, username_alphabet), hashtag=hashtag, text=text)).fetchall()
+            #else:
+            if True:
+                # DANGEROUS: postID may not be unique on its own!
+                rows = sql.execute(mid_print("""
+                    SELECT * FROM
+                    (
+                        SELECT postId, feed.uname, username, fullName, text, recipients, timeCreated, secret FROM
+                        (
+                            SELECT postsTest.* FROM postsTest WHERE
+                                tags LIKE '% #{hashtag} %' ESCAPE '\\' OR
+                                text LIKE '%{text}%' ESCAPE '\\'
+                        )
+                        AS feed JOIN usersTest ON feed.uname = usersTest.uname
+                        WHERE NOT deleted AND (NOT secret OR recips LIKE '% @' || '{auth}' || ' %')
+                        GROUP BY postId
+                        -- LIMIT count
+                    ) ORDER BY timeCreated DESC
+                """.format(auth=normalize_str(userdata[0], username_alphabet), hashtag=hashtag, text=text))).fetchall()
+            print(rows)
+        except sqlite3.DatabaseError as e:
+            if str(e) == "no such table: feed":
+                response = {
+                    "ru": {
+                        "status": "NotFound",
+                        "description": "Соответствующие объявления не найдены",
+                    },
+                    "en": {
+                        "status": "NotFound",
+                        "description": "No corresponding shouts found",
+                    },
+                    "1337": {
+                        "status": "NotFound",
+                        "description": "N0 c0rr35p0nd1n9 5h0u75 f0und",
+                    },
+                }
+                self.finish(json.dumps(response[locale]))
+                return
+            else:
+                db_conn.rollback()
+                print(e)
+                response = {
+                    "ru": {
+                        "status": "DatabaseMalfunc",
+                        "description": "Ошибка базы данных. Пожалуйста, попробуйте еще раз...",
+                    },
+                    "en": {
+                        "status": "DatabaseMalfunc",
+                        "description": "Database error. Please try again...",
+                    },
+                    "1337": {
+                        "status": "DatabaseMalfunc",
+                        "description": "D474b453 3rr0r. P13453 7ry 4941n...",
+                    },
+                }
+                self.finish(json.dumps(response[locale]))
+        else:
+            posts = list()
+            for row in rows:
+                postId, uname, username, fullName, text, recipients, timeCreated, secret = row
+                post = {
+                    "author": username,
+                    "postId": postId,
+                    "authorFullName": fullName,
+                    # "text": text,
+                    "text": trim(text, "<span class='w3-text-indigo'>...</span><p><a href=javascript:viewPost('" + username + "/" + postId + "')>Читать полностью</a></p>"),
+                    "recipients": recipients,
+                    "time": timeCreated,
+                    "secret": secret,
+                }
+                posts.append(post)
+            if not posts:
+                response = {
+                    "ru": {
+                        "status": "NotFound",
+                        "description": "Соответствующие объявления не найдены",
+                    },
+                    "en": {
+                        "status": "NotFound",
+                        "description": "No corresponding shouts found",
+                    },
+                    "1337": {
+                        "status": "NotFound",
+                        "description": "N0 c0rr35p0nd1n9 5h0u75 f0und",
+                    },
+                }
+                self.finish(json.dumps(response[locale]))
+                return
+            response = {
+                "ru": {
+                    "status": "Ok",
+                    "description": "Запрос успешно выполенен",
+                },
+                "en": {
+                    "status": "Ok",
+                    "description": "Request successfully fulfilled",
+                },
+                "1337": {
+                    "status": "Ok",
+                    "description": "R3qu357 5ucc355fu11y fu1f1113d",
+                },
+            }
+            response[locale].update({"posts": posts})
             self.finish(json.dumps(response[locale]))
             return
 
@@ -982,24 +1143,91 @@ class Data_FetchSubscriptions_Handler(tornado.web.RequestHandler):
                 })
             response = {
                 "ru": {
-                    "subs": subscriptions,
                     "status": "Ok",
                     "description": "Запрос успешно выполенен",
                 },
                 "en": {
-                    "subs": subscriptions,
                     "status": "Ok",
                     "description": "Request successfully fulfilled",
                 },
                 "1337": {
-                    "subs": subscriptions,
                     "status": "Ok",
                     "description": "R3qu357 5ucc355fu11y fu1f1113d",
                 },
             }
+            response[locale].update({"subs": subscriptions})
             self.finish(json.dumps(response[locale]))
             return
 
+class Data_SearchUsers_Handler(tornado.web.RequestHandler):
+    @arg_setup
+    def post(self, locale, userdata):
+        group = normalize_str(self.get_argument("group", ""), username_alphabet)
+        try:
+            if not group:
+                usr = tornado.escape.xhtml_escape(self.get_argument("user", "").lower().replace("\\", "\\\\").replace("%", "\%").replace("_", "\_"))
+                rows = sql.execute(mid_print("SELECT username, fullName FROM usersTest WHERE uname LIKE '%{usr}%' OR fname LIKE '%{usr}%' ESCAPE '\\'".format(usr=usr))).fetchall()
+            else:
+                rows = sql.execute(mid_print("SELECT username, fullName FROM usersTest JOIN subsTest ON uname = subber WHERE topic LIKE '${grp}' ESCAPE '\\'".format(grp=group))).fetchall()
+        except sqlite3.DatabaseError as e:
+            print(e)
+            response = {
+                "ru": {
+                    "status": "DatabaseMalfunc",
+                    "description": "Ошибка базы данных. Пожалуйста, попробуйте еще раз...",
+                },
+                "en": {
+                    "status": "DatabaseMalfunc",
+                    "description": "Database error. Please try again...",
+                },
+                "1337": {
+                    "status": "DatabaseMalfunc",
+                    "description": "D474b453 3rr0r. P13453 7ry 4941n...",
+                },
+            }
+            self.finish(json.dumps(response[locale]))
+            return
+        else:
+            if not rows:
+                response = {
+                    "ru": {
+                        "status": "NotFound",
+                        "description": "Соответствующих пользователей не найдено",
+                    },
+                    "en": {
+                        "status": "NotFound",
+                        "description": "No corresponding users found",
+                    },
+                    "1337": {
+                        "status": "NotFound",
+                        "description": "N0 c0rr35p0nd1n9 u53r5 f0und",
+                    },
+                }
+                self.finish(json.dumps(response[locale]))
+                return
+            users = list()
+            for row in rows:
+                users.append({
+                    "username": row[0],
+                    "fullname": row[1] if row[1] else "@" + row[0],
+                })
+            response = {
+                "ru": {
+                    "status": "Ok",
+                    "description": "Запрос успешно выполенен",
+                },
+                "en": {
+                    "status": "Ok",
+                    "description": "Request successfully fulfilled",
+                },
+                "1337": {
+                    "status": "Ok",
+                    "description": "R3qu357 5ucc355fu11y fu1f1113d",
+                },
+            }
+            response[locale].update({"users": users})
+            self.finish(json.dumps(response[locale]))
+            return
 
 class Data_CreatePost_Handler(tornado.web.RequestHandler):
     @arg_setup
@@ -1026,7 +1254,7 @@ class Data_CreatePost_Handler(tornado.web.RequestHandler):
         recipients = " " + " ".join(list({ normalize_str(rcpt.strip(), username_alphabet + "$", False) for rcpt in recipients.replace('$',' $').split() if rcpt.startswith("$") and validate_str(rcpt, username_alphabet + "$", (4, 21)) })
                                     + list({ normalize_str(rcpt.strip(), username_alphabet + "@", False) for rcpt in recipients.replace('@',' @').split() if rcpt.startswith("@") and validate_str(rcpt, username_alphabet + "@", (7, 21)) })) + " "
         text = self.get_argument("text")
-        tags = " " + " ".join(list({ tag.strip() for tag in text.replace('#',' #').split() if tag.startswith("#") })) + " "
+        tags = " " + " ".join(list({ tag.strip() for tag in text.replace('#',' #').split() if tag.startswith("#") and validate_str(tag, username_alphabet + "#") })) + " "
         try:
             while True:
                 post_id = "".join(''.join(random.choice('0123456789ABCDEFHIJKLMNOPQRSTUVWXYZ') for __ in range(6)))
@@ -1733,21 +1961,33 @@ class Page_Settings_Handler(tornado.web.RequestHandler):
 class Page_Search_Handler(tornado.web.RequestHandler):
     @cookie_setup
     def get(self, locale, userdata, whatever):
-        err_desc = {
-                "ru": {
-                    "ERR_NAME": "В разработке",
-                    "ERR_DESCRIPTION": "Страница поиска на данный момент находится в разработке"
-                },
-                "en": {
-                    "ERR_NAME": "Under construction",
-                    "ERR_DESCRIPTION": "The search page is still under development"
-                },
-                "1337": {
-                    "ERR_NAME": "Und3r c0n57ruc710n",
-                    "ERR_DESCRIPTION": "7h3 534rch p493 15 57111 und3r d3v310pm3n7"
-                }
-            }
-        self.render("./frontend/error.html", **err_desc[locale])
+        hashtag = self.get_argument("hashtag", None)
+        group = self.get_argument("group", None)
+        text = self.get_argument("text", None)
+        user = self.get_argument("user", None)
+        wait_text = {
+            "ru": "Производится поиск...",
+            "en": "Search in progress...",
+            "1337": "P3rf0rm1n9 5qLm4p 5c4n...",
+        }[locale]
+        if hashtag is not None:
+            query_title = "по #" + hashtag + " "
+            search_what = 2
+        elif text is not None:
+            query_title = "новостей \"" + text + "\" "
+            search_what = 2
+        elif group is not None:
+            query_title = "по $" + group + " "
+            search_what = 1
+        elif user is not None:
+            query_title = "пользователя \"" + user + "\" "
+            search_what = 1
+        else:
+            query_title = ""
+            search_what = 0
+            wait_text = ""
+        self.render("./frontend/" + locale + "/search.html", QUERY_TITLE=query_title, WAIT_TEXT=wait_text, SEARCH_WHAT=search_what)
+
 
 class Page_Post_Handler(tornado.web.RequestHandler):
     @cookie_setup
@@ -1859,6 +2099,8 @@ app = tornado.web.Application([
     (r"/data/unsubscribe", Data_Unubscribe_Handler),
     (r"/data/updateGravatar", Data_UpdateGravatar_Handler),
     (r"/data/updatePersonal", Data_UpdatePersonal_Handler),
+    (r"/data/searchPosts", Data_SearchPosts_Handler),
+    (r"/data/searchUsers", Data_SearchUsers_Handler),
     (r"/register", Page_Register_Handler),
     (r"/settings", Page_Settings_Handler),
     (r"/gravatar", Page_Gravatar_Handler),
