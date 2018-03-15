@@ -168,6 +168,25 @@
                     }
                 });
             }
+            function fetchSubsNum() {
+                $.ajax({
+                    method: "POST",
+                    url: "/data/fetchUserSubs",
+                    data: {
+                        user: thisUser,
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        justNums: true
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            $("#subs-count").text(response["subsN"]);
+                            $("#subbers-count").text(response["subbersN"]);
+                        }
+                    }
+                });
+            }
             function refreshWall(animate = true) {
                 $("#refresh-link").prop("disabled", true);
                 $("#refresh-text").html("Обновление...");
@@ -392,7 +411,7 @@
                     <img src="{{AVATAR_LINK}}" style="max-width: 100%;"/>
                 </div>
                 <p class="hover-underline finger" onclick="viewSubs()">Подписок: <span id="subs-count">{{SUBS_COUNT}}</span> · Подписчиков: <span id="subbers-count">{{SUBBERS_COUNT}}</span></p>
-                <p class="w3-text-black">{{ABOUT_TEXT}}</p>
+                <p class="w3-text-black" style="white-space: pre-wrap; word-wrap: break-word;">{{ABOUT_TEXT}}</p>
             </div><br />
             <div id="wall" class="rewidth inline-block w3-margin-top">
                 <div class="w3-padding w3-text-indigo w3-round w3-white" style="text-align: left;">

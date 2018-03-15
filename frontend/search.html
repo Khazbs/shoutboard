@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Поиск {{QUERY_TITLE}}· Lyceum Shoutboard</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!--<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" /> -->
+        <link rel="stylesheet" href="/static/w3.css" />
+        <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
+        <script src="/static/jquery-3.2.1.js"></script>
+        <style>
+            .inline-block {
+                display: inline-block;
+            }
+            .hover-underline:hover {
+                text-decoration: underline;
+            }
+            .finger {
+                cursor: pointer;
+            }
+            .hover-underline {
+                text-decoration: none;
+            }
+            /* For smaller screens */
+            @media screen and (max-width: 1000px) {
+                .hide-small {
+                    display: none;
+                }
+                .rewidth {
+                    width: 90%;
+                }
+                .manybuttons {
+                    text-align: center;
+                }
+            }
+            /* For larger screens */
+            @media screen and (min-width: 1000.01px) {
+                .hide-large {
+                    display: none;
+                }
+                #search-container {
+                    width: 75%;
+                }
+            }
+            #sticky-navbar {
+                position: fixed;
+                top: 0;
+                width: 100%;
+            }
+            .posts-post-text {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        </style>
+    </head>
+    <body class="w3-indigo">
+        <script>
+            var defaultCount = 20;
+            var lastPostId = "";
+            var lastUser = "";
+            function getParameterByName(name) {
+                name = name.replace(/[\[\]]/g, "\\$&");
+                var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                    results = regex.exec(window.location.href);
+                if (!results) return null;
+                if (!results[2]) return '';
+                return decodeURIComponent(results[2].replace(/\+/g, " "));
+            }
+            function getCookie(name) {
+                var matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"));
+                return matches ? decodeURIComponent(matches[1]) : undefined;
+            }
+            var whoami = getCookie("whoami");
+            var private = false;
+            var searchSpoiler = false;
+            var hashtagLink = "<a target='_blank' href='/search?hashtag=$2'>$1</a>";
+            $(document).ready(function() {
+                if (whoami === void(0)) {
+                    $(".user-elem").hide();
+                }
+                else {
+                    $(".guest-elem").hide();
+                }
+                $("span.whoami").html("@" + whoami);
+
+                if ({{SEARCH_WHAT}} == 2) {
+                    searchPosts(true, getParameterByName("hashtag"), getParameterByName("text"));
+                }
+                else if ({{SEARCH_WHAT}} == 1) {
+                    searchUsers(true, getParameterByName("group"), getParameterByName("user"));
+                }
+                else {
+                    $("#search-query-title").hide();
+                    searchSpoiler = true;
+                    $("#search").show();
+                }
+            });
+            /*
+            function triggerAch(achievement) {
+                var achAudio = new Audio('/static/ach/notify.mp3');
+                $("#ach-img").prop("src", "/static/ach/" + achievement + ".png");
+                $("#ach-container").fadeIn();
+                achAudio.play();
+            }
+            function setPrivate(value) {
+                private = value;
+                $("#newpost-privatebutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Секретная" : "Публичная");
+                if (value)
+                    $("#newpost-recipients").attr("placeholder", "Получатели (e.g. @Пользователь)")
+                else
+                    $("#newpost-recipients").attr("placeholder", "Получатели (e.g. $Группа @Пользователь)")
+            }
+            function setSubSecret(value) {
+                subSecret = value;
+                $("#subscribe-secretbutton").toggleClass("w3-indigo w3-text-white", value).toggleClass("w3-white w3-text-indigo", !value).html(value ? "Тайно" : "Открыто");
+            }
+            */
+            function toggleSearchSpoiler(value) {
+                if (searchSpoiler == value)
+                    return;
+                searchSpoiler = value;
+                if (value) {
+                    $("#search-title").html("Поиск");
+                }
+                else {
+                    $("#search-title").html("Поиск +");
+                    $("#search-query").val("");
+                }
+                $("#search").slideToggle(value);
+            }
+            function searchUsers(animate = true, group = null, user = "") {
+                $("#searchposts-submit").prop("disabled", true);
+                $("#searchusers-submit").prop("disabled", true);
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/searchUsers",
+                    data: group ? {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        // count: defaultCount,
+                        group: group
+                    } : {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        // count: defaultCount,
+                        user: user
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            var n = response["users"].length;
+                            $("#search-posts").empty().append('<div id="cur-users-block" style="display: none;"></div>');
+                            for (i = 0; i < n; ++i) {
+                                if (true) {
+                                    $("#cur-users-block").append(' \
+                                        <div id="user-' + response["users"][i]["username"] + '" class="w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"><a href="/u/' + response["users"][i]["username"] + '" target="_blank"><h4 style="display: inline-block;">' + response["users"][i]["fullname"] + '</h4></a> <span class="hide-large"><br /></span><p class="w3-text-gray" style="display: inline;">@' + response["users"][i]["username"] + '</p></div><br />');
+                                }
+                            }
+                            // lastUser = response["users"][n - 1]["username"];
+                            // if (n < defaultCount) {
+                            //     $("#load-more").slideUp();
+                            // }
+                            // else {
+                            //     $("#load-more").slideDown();
+                            // }
+                            animate ? $("#cur-users-block").slideDown() : $("#cur-users-block").show();
+                            $("#cur-users-block").removeAttr("id");
+                        }
+                        else if (response["status"] == "NotFound") {
+                            // $("#load-more").slideUp();
+                            $("#search-posts").hide().html("Пользователей по заданному запросу не найдено").slideDown();
+                            lastPost = "";
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#searchposts-submit").prop("disabled", false);
+                        $("#searchusers-submit").prop("disabled", false);
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#searchposts-submit").prop("disabled", false);
+                        $("#searchusers-submit").prop("disabled", false);
+                    },
+                    timeout: 3000
+                });
+            }
+            function searchPosts(animate = true, hashtag = null, text = null) {
+                $("#searchposts-submit").prop("disabled", true);
+                $("#searchusers-submit").prop("disabled", true);
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/searchPosts",
+                    data: hashtag ? {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        // count: defaultCount,
+                        hashtag: hashtag
+                    } : {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        // count: defaultCount,
+                        text: text
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            var n = response["posts"].length;
+                            $("#search-posts").empty().append('<div id="cur-posts-block" style="display: none;"></div>');
+                            for (i = 0; i < n; ++i) {
+                                if (true) {
+                                    $("#cur-posts-block").append(' \
+                                        <div id="posts-post-' + response["posts"][i]["author"] + "-" + response["posts"][i]["postId"] + '" class="posts-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["posts"][i]["author"] + '"><h4 style="display: inline;">' + (response["posts"][i]["authorFullName"] ? response["posts"][i]["authorFullName"] : '@' + response["posts"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["posts"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black posts-post-text">' +
+                                            response["posts"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["posts"][i]["secret"] ? "секретная" : "") + ' <a target="_blank" href="/p/' + response["posts"][i]["author"] + "/" + response["posts"][i]["postId"] + '">' + response["posts"][i]["time"] + '</a>' + (response["posts"][i]["recipients"].trim() ? ' для <u>' + response["posts"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                            }
+                            lastPost = response["posts"][n - 1]["postId"] + " " + response["posts"][n - 1]["author"];
+                            // if (n < defaultCount) {
+                            //     $("#load-more").slideUp();
+                            // }
+                            // else {
+                            //     $("#load-more").slideDown();
+                            // }
+                            animate ? $("#cur-posts-block").slideDown() : $("#cur-posts-block").show();
+                            $("#cur-posts-block").removeAttr("id");
+                        }
+                        else if (response["status"] == "NotFound") {
+                            // $("#load-more").slideUp();
+                            $("#search-posts").hide().html("Новостей по заданному запросу не найдено").slideDown();
+                            lastPost = "";
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#searchposts-submit").prop("disabled", false);
+                        $("#searchusers-submit").prop("disabled", false);
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#searchposts-submit").prop("disabled", false);
+                        $("#searchusers-submit").prop("disabled", false);
+                    },
+                    timeout: 3000
+                });
+            }
+            /*
+            function loadMore(animate = true) {
+                $("#load-more-link").prop("disabled", true);
+                $("#load-more-text").html("Загрузка...");
+                 $.ajax({
+                    method: "POST",
+                    url: "/data/searchPosts",
+                    data: {
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale"),
+                        offsetPost: lastPost,
+                        count: defaultCount
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            $("#search-posts").append('<div id="cur-posts-block" style="display: none;"></div>');
+                            var n = response["posts"].length;
+                            for (i = 0; i < n; ++i) {
+                                if (true) {
+                                    $("#cur-posts-block").append(' \
+                                        <div id="posts-post-' + response["posts"][i]["author"] + "-" + response["posts"][i]["postId"] + '" class="posts-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                            <a href="/u/' + response["posts"][i]["author"] + '"><h4 style="display: inline;">' + (response["posts"][i]["authorFullName"] ? response["posts"][i]["authorFullName"] : '@' + response["posts"][i]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["posts"][i]["author"] + '</p>' +
+                                            '<p class="w3-text-black posts-post-text">' +
+                                            response["posts"][i]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                            <p class="w3-text-gray">' + (response["posts"][i]["secret"] ? "секретная " : "") + ' <a target="_blank" href="/p/' + response["posts"][i]["author"] + "/" + response["posts"][i]["postId"] + '">' + response["posts"][i]["time"] + '</a>' + (response["posts"][i]["recipients"].trim() ? ' для <u>' + response["posts"][i]["recipients"] + "</u>" : "") + '</p> \
+                                        </div><br /> \
+                                    ');
+                                }
+                            }
+                            lastPost = response["posts"][n - 1]["postId"] + " " + response["posts"][n - 1]["author"];
+                            if (n < defaultCount) {
+                                $("#load-more").slideUp();
+                            }
+                            else {
+                                $("#load-more").slideDown();
+                            }
+                            animate ? $("#cur-posts-block").slideDown() : $("#cur-posts-block").show();
+                            $("html, body").animate({ scrollTop: $("#cur-posts-block").offset().top - $("#sticky-navbar").height() }, 1000);
+                            $("#cur-posts-block").removeAttr("id");
+                        }
+                        else if (response["status"] == "NotFound") {
+                            $("#load-more").slideUp();
+                            lastPost = "";
+                        }
+                        else {
+                            alert(response["status"] + " error\n" + response["description"]);
+                        }
+                        $("#load-more-link").prop("disabled", false);
+                        $("#load-more-text").html("Загрузить еще");
+                    },
+                    error: function() {
+                        alert("The server is unavailable! Please try again in a while...");
+                        $("#load-more-link").prop("disabled", false);
+                        $("#load-more-text").html("Загрузить еще");
+                    },
+                    timeout: 3000
+                });
+            }
+            */
+            function showModal(message) {
+                $("#message").html(message);
+                $("#modal").show();
+            }
+            function hideModal() {
+                $("#modal").hide();
+                $("#message").html("");
+            }
+            function viewPost(which) {
+                showModal("Загрузка новости...");
+                $.ajax({
+                    method: "POST",
+                    url: "/data/fetchPost",
+                    data: {
+                        which: which,
+                        auth: getCookie("auth"),
+                        locale: getCookie("locale")
+                    },
+                    success: function(json) {
+                        var response = JSON.parse(json);
+                        if (response["status"] == "Ok") {
+                            $("#message").html(' \
+                                <div id="modal-post-' + response["post"]["author"] + "-" + response["post"]["postId"] + '" class="modal-post w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"> \
+                                    <a href="/u/' + response["post"]["author"] + '"><h4 style="display: inline;">' + (response["post"]["authorFullName"] ? response["post"]["authorFullName"] : '@' + response["post"]["author"]) + '</h4></a> <p class="w3-text-gray" style="display: inline;">@' + response["post"]["author"] + '</p> \
+                                    <p class="w3-text-black modal-post-text">' + response["post"]["text"].replace(/(#([a-zA-Z0-9а-яА-Я_]+))/gu, hashtagLink) + '</p> \
+                                    <p class="w3-text-gray">'  + (response["post"]["secret"] ? "секретная " : "") +  ' <a target="_blank" href="/p/' + response["post"]["author"] + "/" + response["post"]["postId"] + '">' + response["post"]["time"] + '</a>' + (response["post"]["recipients"].trim() ? ' для <u>' + response["post"]["recipients"] + "</u>" : "") + '</p> \
+                                </div><br /> \
+                            ');
+                        }
+                        else {
+                            $("#message").html("<h3>" + response["status"] + " error</h3><p>" + response["description"] + "</p>");
+                        }
+                    },
+                    error: function() {
+                        $("#message").html('The server is unavailable! Please try again in a while...');
+                    }
+                });
+            }
+            function goFind(posts) {
+                var curQuery = $("#search-query").val();
+                if (posts) {
+                    if (/^#([a-zA-Z0-9а-яА-Я_]+$)/.test(curQuery)) {
+                        window.location.assign("/search?hashtag=" + encodeURIComponent(/#([a-zA-Z0-9а-яА-Я_]+)/.exec(curQuery)[1]));
+                    } else {
+                        window.location.assign("/search?text=" + encodeURIComponent(curQuery));
+                    }
+                } else {
+                    if (/^\$([a-zA-Z0-9а-яА-Я_]+$)/.test(curQuery)) {
+                        window.location.assign("/search?group=" + encodeURIComponent(/\$([a-zA-Z0-9а-яА-Я_]+)/.exec(curQuery)[1]));
+                    } else {
+                        window.location.assign("/search?user=" + encodeURIComponent(curQuery));
+                    }
+                }
+            }
+        </script>
+        <div id="ach-container" onclick="$('#ach-container').fadeOut();" style="width: 100%; display: none; text-align: center; position: fixed; bottom: 30px;">
+            <div>
+                <img id="ach-img" src="" style="max-width: 60%;" />
+            </div>
+        </div>
+        <div id="modal" class="w3-modal">
+            <div class="w3-text-indigo finger" style="z-index: 12; font-size: 2.5em; position: fixed; top: 0.7em; right: 1em;" onclick="hideModal()">&times;</div>
+            <div class="w3-modal-content w3-container w3-padding w3-animate-zoom w3-white w3-center">
+                <p class="w3-text-indigo" id="message"></p>
+            </div>
+        </div>
+        <header class="w3-container w3-margin-top w3-center">
+            <p>HSE Lyceum</p>
+            <a href="/" class="hover-underline"><h1>Shoutboard</h1></a>
+        </header>
+        <nav id="navbar" class="w3-container w3-padding w3-indigo w3-center">
+            <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+            <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+            <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+            <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+            <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+            <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+        </nav>
+        <nav id="sticky-navbar" class="w3-container w3-padding w3-indigo w3-center" style="display: none;">
+            <span class="hide-small">
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+                <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
+            </span>
+            <button onclick="$('#mobile-nav').slideToggle();" class="w3-button w3-hover-none w3-hover-text-white hide-large">≡</button>
+            <a href=""><button class="w3-button w3-hover-none w3-hover-text-white hover-underline" id="logo" style="display: none; font-size: 1.2em;">HSE Lyceum <strong>Shoutboard</strong></button></a>
+            <span class="hide-small">
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </span>
+            <div class="hide-large" id="mobile-nav" style="display: none;">
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a><br class="user-elem" />
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a><br class="user-elem" />
+                <a href="/search"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a><br class="user-elem" />
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline=">Подписки</button></a><br class="user-elem" />
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a><br class="user-elem" />
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a><br class="user-elem" />
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a><br class="guest-elem" />
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            </div>
+        </nav>
+        <div class="w3-center w3-margin-top">
+            <div id="search-container" class="rewidth inline-block w3-margin-top">
+                <div class="w3-padding w3-text-indigo w3-round w3-white" style="text-align: left;">
+                    <a class="hover-underline inline-block" href=javascript:toggleSearchSpoiler(!searchSpoiler)><h4 id="search-title">Поиск</h4></a>
+                    <!-- <a id="refresh-link" class="hover-underline inline-block" href=javascript:void(0)><h4 id="refresh-text">Обновить</h4></a> -->
+                    <div id="search" style="display: none;">
+                        <input class="w3-input" type="text" id="search-query" placeholder="Поисковый запрос" />
+                        <p class="manybuttons">
+                            найти&nbsp;
+                            <button id="searchposts-submit" onclick="goFind(true)" class="w3-button w3-indigo">новости</button>
+                            <button id="searchusers-submit" onclick="goFind(false)" class="w3-button w3-indigo">пользователей</button>
+                        </p>
+                    </div>
+                </div><br />
+                <h3 id="search-query-title">
+                    Результаты поиска {{QUERY_TITLE}}
+                </h3>
+                <div id="search-posts">
+                    {{WAIT_TEXT}}
+                </div>
+                <!-- <div id="load-more" style="display: none;">
+                    <a class="hover-underline inline-block" href=javascript:loadMore()><h4>Загрузить еще</h4></a>
+                </div> -->
+            </div>
+        </div>
+        <script>
+            $(document).ready(function() {
+                var $window = $(window);
+                var $navbar = $("#navbar");
+                var $stickyNavbar = $("#sticky-navbar");
+                var elementTop = $navbar.offset().top;
+                var $logo = $("#logo");
+                var $mobileNav = $("#mobile-nav");
+                $window.scroll(function() {
+                    if ($window.scrollTop() > elementTop) {
+                        $stickyNavbar.show();
+                        $navbar.css("visibility", "hidden");
+                        $logo.slideDown();
+                    }
+                    else {
+                        $navbar.css("visibility", "visible");
+                        $stickyNavbar.hide();
+                        $mobileNav.hide();
+                        $logo.hide();
+                    }
+                    
+                });
+            });
+        </script>
+        <footer class="w3-container w3-margin w3-center">
+            <p>by <a target="_blank" href="https://vk.com/arthur_khazbs">Arthur Khazbs</a></p>
+        </footer>
+    </body>
+</html>

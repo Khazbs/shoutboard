@@ -8,7 +8,6 @@
         <link rel="stylesheet" href="/static/w3.css" />
         <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
         <script src="/static/jquery-3.2.1.js"></script>
-        <script src="/static/md5.js"></script>
         <style>
             .sub-node .sub-actions {
                 display: none;
@@ -64,10 +63,6 @@
                 top: 0;
                 width: 100%;
             }
-            .feed-post-text {
-                white-space: pre-wrap;
-            }
-
         </style>
     </head>
     <body class="w3-indigo">
@@ -145,7 +140,7 @@
                             $("#subs").hide().empty();
                             for (i = 0; i < response["subs"].length; ++i) {
                                 $("#subs").append(' \
-                                    <div onclick="edit(\'' + response["subs"][i]["topic"] + '\', ' + (response["subs"][i]["important"] ? "true" : "false") + ', ' + (response["subs"][i]["secret"] ? "true" : "false") + ')" id="sub-' + response["subs"][i]["topic"] + '" class="wall-post finger w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"><h4>' + response["subs"][i]["topic"] + '<span class="hide-large"><br />&nbsp;</span><span class="w3-right">' +
+                                    <div onclick="edit(\'' + response["subs"][i]["topic"] + '\', ' + (response["subs"][i]["important"] ? "true" : "false") + ', ' + (response["subs"][i]["secret"] ? "true" : "false") + ')" id="sub-' + response["subs"][i]["topic"] + '" class="finger w3-padding w3-white w3-text-indigo w3-round" style="text-align: left;"><h4>' + response["subs"][i]["topic"] + '<span class="hide-large"><br />&nbsp;</span><span class="w3-right">' +
                                     (response["subs"][i]["secret"] == 1 ? "Тайно" : "Открыто") + " · " + (response["subs"][i]["important"] == 1 ? "Важные" : "Обычные") + '</span></h4></div><br /> \
                                 ');
                             }
