@@ -63,10 +63,10 @@
             var whoami = getCookie("whoami");
             $(document).ready(function() {
                 if (whoami === void(0)) {
-                    $(".u-button").hide();
+                    $(".user-elem").hide();
                 }
                 else {
-                    $(".g-button").hide();
+                    $(".guest-elem").hide();
                 }
                 $("span.whoami").html("@" + whoami);
             });
@@ -146,39 +146,39 @@
             <a href="/" class="hover-underline"><h1>Shoutboard</h1></a>
         </header>
         <nav id="navbar" class="w3-container w3-padding w3-indigo w3-center">
-            <a href="/me"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
-            <a href="/feed"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+            <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+            <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
             <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
-            <a href="/subscriptions"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
-            <a href="/settings"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
-            <a href="/logout"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
-            <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
-            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+            <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+            <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+            <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+            <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
         </nav>
         <nav id="sticky-navbar" class="w3-container w3-padding w3-indigo w3-center" style="display: none;">
             <span class="hide-small">
-                <a href="/me"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
-                <a href="/feed"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a>
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a>
                 <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a>
             </span>
             <button onclick="$('#mobile-nav').slideToggle();" class="w3-button w3-hover-none w3-hover-text-white hide-large">≡</button>
             <a href="/"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline" id="logo" style="display: none; font-size: 1.2em;">HSE Lyceum <strong>Shoutboard</strong></button></a>
             <span class="hide-small">
-                <a href="/subscriptions"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
-                <a href="/settings"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
-                <a href="/logout"><button class="u-button w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
-                <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
-            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Подписки</button></a>
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a>
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a>
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
             </span>
             <div class="hide-large" id="mobile-nav" style="display: none;">
-                <a href="/me"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a><br />
-                <a href="/feed"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a><br />
-                <a href="/search"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a><br />
-                <a href="/subscriptions"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline=">Подписки</button></a><br />
-                <a href="/settings"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a><br />
-                <a href="/logout"><button class="w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a><br />
-                <a href="/login"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a>
-            <a href="/register"><button class="g-button w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
+                <a href="/me"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline"><span class="whoami"></span></button></a><br class="user-elem" />
+                <a href="/feed"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Новости</button></a><br class="user-elem" />
+                <a href="/search"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Поиск</button></a><br class="user-elem" />
+                <a href="/subscriptions"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline=">Подписки</button></a><br class="user-elem" />
+                <a href="/settings"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Настройки</button></a><br class="user-elem" />
+                <a href="/logout"><button class="user-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Выйти</button></a><br class="user-elem" />
+                <a href="/login"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Войти</button></a><br class="guest-elem" />
+            <a href="/register"><button class="guest-elem w3-button w3-hover-none w3-hover-text-white hover-underline">Регистрация</button></a>
             </div>
         </nav>
         <div class="w3-center w3-margin-top">
@@ -189,7 +189,8 @@
                     <p>Предпросмотр</p>
                 </div>
                 <div class="w3-margin">
-                    <input id="email-field" class="w3-input" type="text" name="email" onfocusin="bleachEmail();" onfocusout="preview();" placeholder="Email в Gravatar" />
+                    <input id="email-field" class="w3-input" type="text" name="email" onfocusin="bleachEmail();" onfocusout="preview();" placeholder="Email в
+                     Gravatar" />
                     <span id="email-caption" class="w3-caption w3-text-teal"></span>
                 </div>
                 <div class="w3-margin">

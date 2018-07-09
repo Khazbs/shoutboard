@@ -35,7 +35,7 @@
                 return matches ? decodeURIComponent(matches[1]) : undefined;
             }
             function submitLoginForm() {
-                $("#login-button").prop("disabled", true).removeClass("w3-indigo").addClass("w3-white").addClass("w3-text-indigo").html("Входим...");
+                $("#login-button").prop("disabled", true).removeClass("w3-indigo").addClass("w3-white").addClass("w3-text-indigo").val("Входим...");
                 var username = $("#username-field").prop("disabled", true).val();
                 var password = $("#password-field").prop("disabled", true).val();
                 $.ajax({
@@ -57,20 +57,20 @@
                             $("#username-field").addClass("w3-teal").removeClass("w3-pink");
                             $("#password-field").addClass("w3-teal").removeClass("w3-pink");
                             $("#common-caption").addClass("w3-text-teal").removeClass("w3-text-pink").html("");
-                            $("#login-button").removeClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").addClass("w3-teal").html("Готово");
+                            $("#login-button").removeClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").addClass("w3-teal").val("Готово");
                             window.location.href = "/feed";
                             return
                         }
                         else {
                             alert(response["status"] + " error\n" + response["description"]);
                         }
-                        $("#login-button").prop("disabled", false).addClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").html("Войти");
+                        $("#login-button").prop("disabled", false).addClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").val("Войти");
                         $("#username-field").prop("disabled", false);
                         $("#password-field").prop("disabled", false);
                     },
                     error: function() {
                         alert("The server is unavailable! Please try again in a while...");
-                        $("#login-button").prop("disabled", false).addClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").html("Войти");
+                        $("#login-button").prop("disabled", false).addClass("w3-indigo").removeClass("w3-white").removeClass("w3-text-indigo").val("Войти");
                         $("#username-field").prop("disabled", false);
                         $("#password-field").prop("disabled", false);
                     },
@@ -94,14 +94,16 @@
                 <p>или <a href="/register">создать</a> новый аккаунт</p>
             </div>
             <div class="inline-block">
-                <div class="w3-margin">
-                    <input id="username-field" class="w3-input" onfocusin="bleachFieldsUnion(['username'])" type="text" name="username" placeholder="Имя пользователя" />
-                </div>
-                <div class="w3-margin">
-                    <input id="password-field" class="w3-input" onfocusin="bleachFieldsUnion(['password'])" type="password" name="password" placeholder="Пароль" />
-                </div>
-                <span id="common-caption" class="w3-caption"></span><br />
-                <button id="login-button" class="w3-button w3-margin w3-indigo" onclick="submitLoginForm()">Войти</button>
+		<form onsubmit="submitLoginForm(); event.preventDefault();" method="POST">
+			<div class="w3-margin">
+			    <input id="username-field" class="w3-input" onfocusin="bleachFieldsUnion(['username'])" type="text" name="username" placeholder="Имя пользователя" />
+			</div>
+			<div class="w3-margin">
+			    <input id="password-field" class="w3-input" onfocusin="bleachFieldsUnion(['password'])" type="password" name="password" placeholder="Пароль" />
+			</div>
+			<span id="common-caption" class="w3-caption"></span><br />
+			<input type="submit" id="login-button" class="w3-button w3-margin w3-indigo" value="Войти" />
+		</form>
             </div><br />
         </div>
         <footer class="w3-container w3-margin w3-center">
